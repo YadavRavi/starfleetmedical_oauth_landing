@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Star Fleet Medical — OAuth Landing</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b0d10;
+      --fg: #e6e6e6;
+      --muted: #8a8a8a;
+      --accent: #ffa657;
+      --code-bg: #1a1d23;
+      --code-fg: #f6f8fa;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fdfdfd; --fg: #1a1a1a; --muted: #555;
+        --code-bg: #f2f2f2; --code-fg: #1a1a1a;
+      }
+    }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg); color: var(--fg);
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+    main {
+      max-width: 640px; margin: 4rem auto; padding: 0 1.25rem;
+    }
+    h1 { font-size: 1.3rem; margin: 0 0 .25rem; }
+    p.tag { color: var(--muted); margin: 0 0 1.5rem; font-size: .9rem; }
+    section { margin: 1.5rem 0; }
+    .panel {
+      background: var(--code-bg); color: var(--code-fg);
+      padding: 1rem; border-radius: 6px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      word-break: break-all; font-size: .95rem;
+    }
+    .label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .25rem; }
+    .code-value { color: var(--accent); user-select: all; cursor: text; }
+    button {
+      background: transparent; color: var(--fg);
+      border: 1px solid var(--muted); border-radius: 4px;
+      padding: .35rem .75rem; font: inherit; cursor: pointer; margin-top: .5rem;
+    }
+    button:hover { border-color: var(--fg); }
+    .hint { color: var(--muted); font-size: .85rem; margin-top: .75rem; }
+    .empty { color: var(--muted); font-style: italic; }
+    footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Star Fleet Medical — OAuth Landing</h1>
+    <p class="tag">Static reachability beacon for personal-vault OAuth flows.</p>
+
+    <section id="callback-output">
+      <div class="empty" id="empty-msg"></div>
+    </section>
+
+    <section>
+      <p class="hint" id="privacy-note"></p>
+    </section>
+
+    <footer id="footer-note"></footer>
+  </main>
+
+  <script>
+    (function () {
+      // Static copy populated via textContent only — never innerHTML.
+      document.getElementById("empty-msg").textContent =
+        "No ?code=… in the URL bar. This page is just a 200-OK target so OAuth providers (Withings, etc.) accept it during app registration.";
+
+      var privacy = document.getElementById("privacy-note");
+      privacy.textContent =
+        "Privacy: this page runs no analytics and contacts no third parties. The query string never leaves your browser. View the source at ";
+      var srcLink = document.createElement("a");
+      srcLink.href = "https://github.com/YadavRavi/starfleetmedical_oauth_landing";
+      srcLink.textContent = "github.com/YadavRavi/starfleetmedical_oauth_landing";
+      privacy.appendChild(srcLink);
+      privacy.appendChild(document.createTextNode("."));
+
+      document.getElementById("footer-note").textContent =
+        "Personal infrastructure. Not affiliated with any health-data vendor.";
+
+      var params = new URLSearchParams(window.location.search);
+      if (!params.has("code") && !params.has("error")) return;
+
+      var container = document.getElementById("callback-output");
+      container.replaceChildren();   // safe DOM clear, no innerHTML
+
+      function panel(label, value, copyable) {
+        var wrap = document.createElement("div");
+        wrap.style.margin = "1rem 0";
+        var lab = document.createElement("div");
+        lab.className = "label";
+        lab.textContent = label;
+        wrap.appendChild(lab);
+        var panelEl = document.createElement("div");
+        panelEl.className = "panel";
+        var span = document.createElement("span");
+        span.className = "code-value";
+        span.textContent = value;
+        panelEl.appendChild(span);
+        wrap.appendChild(panelEl);
+        if (copyable) {
+          var btn = document.createElement("button");
+          btn.textContent = "Copy";
+          btn.addEventListener("click", function () {
+            navigator.clipboard.writeText(value).then(function () {
+              btn.textContent = "Copied";
+              setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+            });
+          });
+          wrap.appendChild(btn);
+        }
+        container.appendChild(wrap);
+      }
+
+      if (params.get("error")) {
+        panel("OAuth error", params.get("error"), false);
+        if (params.get("error_description")) {
+          panel("Description", params.get("error_description"), false);
+        }
+      } else {
+        panel("Authorization code", params.get("code"), true);
+        if (params.get("state")) {
+          panel("State", params.get("state"), false);
+        }
+        var hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent =
+          "Paste the code above into the puller script's --init prompt. " +
+          "The code expires in roughly 30 seconds — be quick.";
+        container.appendChild(hint);
+      }
+    })();
+  </script>
+</body>
+</html>
